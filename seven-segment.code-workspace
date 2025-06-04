@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "root"
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "search.followSymlinks": true,
+    "micropico.autoConnect": true,
+    "micropico.statusbarButtons": [
+      "status",
+      "run",
+      "softreset",
+      "togglepicowfs",
+      "upload",
+      "uploadproject"
+    ],
+    "micropico.syncFileTypes": ["py"],
+    "micropico.syncFolder": "src"
+  }
+}
