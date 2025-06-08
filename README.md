@@ -1,5 +1,7 @@
 # Seven-Segment
 
+![image](./image.png)
+
 **[日本語版はこちら](README.ja.md)**
 
 ## COM-11405 Pin Layout
@@ -17,7 +19,8 @@
 - COM pins (c1–c4) → Connect to Pico GPIOs (e.g., 16, 18, 20, 22)
 - Segment pins (a–g, dp) → Connect to a shift register (e.g., 74HC595)
 - Connect the shift register's latch, clock, and data pins to appropriate GPIOs
-- _(Insert Fritzing diagram here)_
+
+![circuit-diagram](./circuit-diagram.png)
 
 ## Step 1: Wi-Fi Configuration
 

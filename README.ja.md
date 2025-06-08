@@ -1,5 +1,7 @@
 # Seven-Segment
 
+![image](./image.png)
+
 ## COM-11405 ピン配置
 
 | 12  | 11  | 10  | 9   | 8   | 7   |
@@ -15,7 +17,8 @@
 - COM ピン (c1〜c4) → Pico の GPIO へ接続（例：16, 18, 20, 22）
 - セグメント a〜g, dp → シフトレジスタ（例：74HC595）を介して Pico に接続
 - シフトレジスタの latch, clock, data も適切な GPIO に接続
-- ※ここに Fritzing の図を挿入予定
+
+![circuit-diagram](./circuit-diagram.png)
 
 ## 使い方 1: Wi-Fi の設定
 
