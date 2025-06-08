@@ -1,134 +1,110 @@
-from machine import Pin
-from utime import sleep_ms
-
-SLEEP_MS = 1000
+from machine     import Pin
+from network     import WLAN, STA_IF
+from ntptime     import settime
+from utime       import localtime, sleep_ms, ticks_ms, time
+from wifi_config import SSID, PASSWORD
 
 led_pico = Pin('LED', Pin.OUT)
-serial   = Pin(5,     Pin.OUT)
-shift    = Pin(10,    Pin.OUT)
-latch    = Pin(15,    Pin.OUT)
-cathodes = [Pin(i, Pin.OUT) for i in [16, 18, 20, 22]]
+serial   = Pin(5,     Pin.OUT) # GP5
+shift    = Pin(10,    Pin.OUT) # GP10
+latch    = Pin(15,    Pin.OUT) # GP15
+cathodes = [Pin(i, Pin.OUT) for i in [16, 18, 20, 22]] # GP16, 18, 20, 22
 
-cathodes[0].off()
-cathodes[1].on()
-cathodes[2].on()
-cathodes[3].on()
-
-def on():
+def bit_on():
     serial.on()
     shift.on()
     serial.off()
     shift.off()
 
-def off():
+def bit_off():
     serial.off()
     shift.on()
     serial.off()
     shift.off()
 
-def emit():
+def memory_emit():
     latch.on()
     latch.off()
 
-def show(segments: list[int], doted: bool):
-    on() if doted else off()
-    for segment in reversed(segments):
-        on() if segment == 1 else off()
-    emit()
-
-def clear():
+def clear_char():
     for _ in range(8):
-        off()
-    emit()
+        bit_off()
+        sleep_ms(TIME_A)
+    memory_emit()
 
-def zero(doted: bool):
-    show([1, 1, 1, 1, 1, 1, 0], doted) # a b c d e f g
+def select_char(char: str, doted: bool):
+    bit_on() if doted else bit_off()
+    for pattern in reversed({
+        '0': [1, 1, 1, 1, 1, 1, 0], # a b c d e f g
+        '1': [0, 1, 1, 0, 0, 0, 0],
+        '2': [1, 1, 0, 1, 1, 0, 1],
+        '3': [1, 1, 1, 1, 0, 0, 1], 
+        '4': [0, 1, 1, 0, 0, 1, 1], 
+        '5': [1, 0, 1, 1, 0, 1, 1],
+        '6': [1, 0, 1, 1, 1, 1, 1],
+        '7': [1, 1, 1, 0, 0, 0, 0],
+        '8': [1, 1, 1, 1, 1, 1, 1],
+        '9': [1, 1, 1, 1, 0, 1, 1], 
+        'a': [1, 1, 1, 0, 1, 1, 1],
+        'b': [0, 0, 1, 1, 1, 1, 1],
+        'c': [1, 0, 0, 1, 1, 1, 0],
+        'd': [0, 1, 1, 1, 1, 0, 1],
+        'e': [1, 0, 0, 1, 1, 1, 1],
+        'f': [1, 0, 0, 0, 1, 1, 1]
+    }.get(char, [0] * 7)):
+        bit_on() if pattern == 1 else bit_off()
+    memory_emit()
 
-def one(doted: bool):
-    show([0, 1, 1, 0, 0, 0, 0], doted)
+def clear_digit():
+    for cathode in cathodes:
+        cathode.on()
 
-def two(doted: bool):
-    show([1, 1, 0, 1, 1, 0, 1], doted)
+def select_digit(digit: int):
+    clear_digit()
+    cathodes[digit].off()
 
-def three(doted: bool):
-    show([1, 1, 1, 1, 0, 0, 1], doted)
+def show(digit: int, char: str, doted: bool):
+    select_char(char, doted)
+    select_digit(digit)
+    sleep_ms(TIME_B)
 
-def four(doted: bool):
-    show([0, 1, 1, 0, 0, 1, 1], doted)
-
-def five(doted: bool):
-    show([1, 0, 1, 1, 0, 1, 1], doted)
-
-def six(doted: bool):
-    show([1, 0, 1, 1, 1, 1, 1], doted)
-
-def seven(doted: bool):
-    show([1, 1, 1, 0, 0, 0, 0], doted)
-
-def eight(doted: bool):
-    show([1, 1, 1, 1, 1, 1, 1], doted)
-
-def nine(doted: bool):
-    show([1, 1, 1, 1, 0, 1, 1], doted)
-
-def a(doted: bool):
-    show([1, 1, 1, 0, 1, 1, 1], doted)
-
-def b(doted: bool):
-    show([0, 0, 1, 1, 1, 1, 1], doted)
-
-def c(doted: bool):
-    show([1, 0, 0, 1, 1, 1, 0], doted)
-
-def d(doted: bool):
-    show([0, 1, 1, 1, 1, 0, 1], doted)
-
-def e(doted: bool):
-    show([1, 0, 0, 1, 1, 1, 1], doted)
-
-def f(doted: bool):
-    show([1, 0, 0, 0, 1, 1, 1], doted)
+# A = Interval to send "off" signals to the shift register (shorter means longer human perception time, improving visibility; too short causes shift register errors)
+TIME_A = 100  # [ms]
+# B = Wait time before switching each digit (shorter makes all digits appear lit simultaneously; less than about 5ms is hard to see)
+TIME_B = 5    # [ms]
+# C = Duration to keep lit (longer improves visibility by extending perception time; too long causes shift register errors)
+TIME_C = 500  # [ms]
 
 print('start')
 led_pico.on()
+clear_digit()
 
 try:
+    wlan = WLAN(STA_IF)
+    wlan.active(True)
+    wlan.connect(SSID, PASSWORD)
+    while not wlan.isconnected():
+        sleep_ms(1000)
+    settime()
     while(True):
-        zero(True)
-        sleep_ms(SLEEP_MS)
-        one(False)
-        sleep_ms(SLEEP_MS)
-        two(True)
-        sleep_ms(SLEEP_MS)
-        three(False)
-        sleep_ms(SLEEP_MS)
-        four(True)
-        sleep_ms(SLEEP_MS)
-        five(False)
-        sleep_ms(SLEEP_MS)
-        six(True)
-        sleep_ms(SLEEP_MS)
-        seven(False)
-        sleep_ms(SLEEP_MS)
-        eight(True)
-        sleep_ms(SLEEP_MS)
-        nine(False)
-        sleep_ms(SLEEP_MS)
-        a(True)
-        sleep_ms(SLEEP_MS)
-        b(False)
-        sleep_ms(SLEEP_MS)
-        c(True)
-        sleep_ms(SLEEP_MS)
-        d(False)
-        sleep_ms(SLEEP_MS)
-        e(True)
-        sleep_ms(SLEEP_MS)
-        f(False)
-        sleep_ms(SLEEP_MS)
+        # JST is +9 hour
+        now = localtime(time() + 9 * 3600)
+        hour = now[3]
+        minute = now[4]
+        h_str = f"{hour:02}"
+        m_str = f"{minute:02}"
+        t_start = ticks_ms()
+        while ticks_ms() - t_start < TIME_C:
+            show(0, h_str[0], False)
+            show(1, h_str[1], True)
+            show(2, m_str[0], False)
+            show(3, m_str[1], False)
+        clear_digit()
+        clear_char()
 except BaseException as ex:
     print(ex)
 finally:
-    clear()
+    clear_digit()
+    clear_char()
     print('end')
     led_pico.off()
