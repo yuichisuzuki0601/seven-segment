@@ -7,6 +7,12 @@ led_pico = Pin('LED', Pin.OUT)
 serial   = Pin(5,     Pin.OUT)
 shift    = Pin(10,    Pin.OUT)
 latch    = Pin(15,    Pin.OUT)
+cathodes = [Pin(i, Pin.OUT) for i in [16, 18, 20, 22]]
+
+cathodes[0].off()
+cathodes[1].on()
+cathodes[2].on()
+cathodes[3].on()
 
 def on():
     serial.on()
@@ -24,10 +30,10 @@ def emit():
     latch.on()
     latch.off()
 
-def show(segments: list[bool], doted: bool):
+def show(segments: list[int], doted: bool):
     on() if doted else off()
     for segment in reversed(segments):
-        on() if segment else off()
+        on() if segment == 1 else off()
     emit()
 
 def clear():
@@ -36,52 +42,52 @@ def clear():
     emit()
 
 def zero(doted: bool):
-    show([True, True, True, True, True, True, False], doted) # a b c d e f g
+    show([1, 1, 1, 1, 1, 1, 0], doted) # a b c d e f g
 
 def one(doted: bool):
-    show([False, True, True, False, False, False, False], doted)
+    show([0, 1, 1, 0, 0, 0, 0], doted)
 
 def two(doted: bool):
-    show([True, True, False, True, True, False, True], doted)
+    show([1, 1, 0, 1, 1, 0, 1], doted)
 
 def three(doted: bool):
-    show([True, True, True, True, False, False, True], doted)
+    show([1, 1, 1, 1, 0, 0, 1], doted)
 
 def four(doted: bool):
-    show([False, True, True, False, False, True, True], doted)
+    show([0, 1, 1, 0, 0, 1, 1], doted)
 
 def five(doted: bool):
-    show([True, False, True, True, False, True, True], doted)
+    show([1, 0, 1, 1, 0, 1, 1], doted)
 
 def six(doted: bool):
-    show([True, False, True, True, True, True, True], doted)
+    show([1, 0, 1, 1, 1, 1, 1], doted)
 
 def seven(doted: bool):
-    show([True, True, True, False, False, False, False], doted)
+    show([1, 1, 1, 0, 0, 0, 0], doted)
 
 def eight(doted: bool):
-    show([True, True, True, True, True, True, True], doted)
+    show([1, 1, 1, 1, 1, 1, 1], doted)
 
 def nine(doted: bool):
-    show([True, True, True, True, False, True, True], doted)
+    show([1, 1, 1, 1, 0, 1, 1], doted)
 
 def a(doted: bool):
-    show([True, True, True, False, True, True, True], doted)
+    show([1, 1, 1, 0, 1, 1, 1], doted)
 
 def b(doted: bool):
-    show([False, False, True, True, True, True, True], doted)
+    show([0, 0, 1, 1, 1, 1, 1], doted)
 
 def c(doted: bool):
-    show([True, False, False, True, True, True, False], doted)
+    show([1, 0, 0, 1, 1, 1, 0], doted)
 
 def d(doted: bool):
-    show([False, True, True, True, True, False, True], doted)
+    show([0, 1, 1, 1, 1, 0, 1], doted)
 
 def e(doted: bool):
-    show([True, False, False, True, True, True, True], doted)
+    show([1, 0, 0, 1, 1, 1, 1], doted)
 
 def f(doted: bool):
-    show([True, False, False, False, True, True, True], doted)
+    show([1, 0, 0, 0, 1, 1, 1], doted)
 
 print('start')
 led_pico.on()
