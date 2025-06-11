@@ -1,7 +1,7 @@
-from machine     import Pin
+from machine     import Pin, SPI
 from network     import WLAN, STA_IF
 from ntptime     import settime
-from utime       import localtime, sleep_ms, ticks_ms, time
+from utime       import localtime, sleep_ms, sleep_us, time
 from wifi_config import SSID, PASSWORD
 
 led_pico = Pin('LED', Pin.OUT)
@@ -23,16 +23,27 @@ def bit_off():
     shift.off()
 
 def memory_emit():
+    sleep_us(2)
     latch.on()
+    sleep_us(2)
     latch.off()
+    sleep_us(2)
+
+def clear_digit():
+    for cathode in cathodes:
+        cathode.on()
+
+def select_digit(digit: int):
+    clear_digit()
+    cathodes[digit].off()
 
 def clear_char():
     for _ in range(8):
         bit_off()
-        sleep_ms(TIME_A)
     memory_emit()
 
 def select_char(char: str, doted: bool):
+    clear_char()
     bit_on() if doted else bit_off()
     for pattern in reversed({
         '0': [1, 1, 1, 1, 1, 1, 0], # a b c d e f g
@@ -55,25 +66,10 @@ def select_char(char: str, doted: bool):
         bit_on() if pattern == 1 else bit_off()
     memory_emit()
 
-def clear_digit():
-    for cathode in cathodes:
-        cathode.on()
-
-def select_digit(digit: int):
-    clear_digit()
-    cathodes[digit].off()
-
 def show(digit: int, char: str, doted: bool):
-    select_char(char, doted)
     select_digit(digit)
-    sleep_ms(TIME_B)
-
-# A = Interval to send "off" signals to the shift register (shorter means longer human perception time, improving visibility; too short causes shift register errors)
-TIME_A = 100  # [ms]
-# B = Wait time before switching each digit (shorter makes all digits appear lit simultaneously; less than about 5ms is hard to see)
-TIME_B = 5    # [ms]
-# C = Duration to keep lit (longer improves visibility by extending perception time; too long causes shift register errors)
-TIME_C = 500  # [ms]
+    select_char(char, doted)
+    sleep_ms(5)
 
 print('start')
 led_pico.on()
@@ -93,14 +89,10 @@ try:
         minute = now[4]
         h_str = f"{hour:02}"
         m_str = f"{minute:02}"
-        t_start = ticks_ms()
-        while ticks_ms() - t_start < TIME_C:
-            show(0, h_str[0], False)
-            show(1, h_str[1], True)
-            show(2, m_str[0], False)
-            show(3, m_str[1], False)
-        clear_digit()
-        clear_char()
+        show(0, h_str[0], False)
+        show(1, h_str[1], True)
+        show(2, m_str[0], False)
+        show(3, m_str[1], False)
 except BaseException as ex:
     print(ex)
 finally:
